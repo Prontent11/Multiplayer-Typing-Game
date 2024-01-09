@@ -1,35 +1,56 @@
-import { useContest } from "@/app/context/ContestContext";
-import { useRouter } from "next/navigation";
+// ContestComponent.tsx
+"use client";
 import React, { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { useRouter } from "next/navigation";
+import { useContest } from "@/app/context/ContestContext";
 import { v4 as uuidv4 } from "uuid";
-interface createContest {
+
+interface CreateContest {
   name: string;
   contestName: string;
   timer: number;
 }
-interface joinContest {
+
+interface JoinContest {
   name: string;
   contestId: string;
 }
+
 const generateRandomRoomId = () => {
   return uuidv4();
 };
 
-const ContestComponent = ({ onClose }: any) => {
+const ContestComponent: React.FC = () => {
   const router = useRouter();
-  const [createContest, setCreateContest] = useState<createContest | null>();
-  const [joinContest, setJoinContest] = useState<joinContest | null>();
-  const { contestId, setContest, setUserName, socket } = useContest();
+  const [createContest, setCreateContest] = useState<CreateContest>({
+    name: "",
+    contestName: "",
+    timer: 30,
+  });
+  const [joinContest, setJoinContest] = useState<JoinContest>({
+    name: "",
+    contestId: "",
+  });
+
+  const { setContestData, socket, contestData } = useContest();
 
   const handleCreateContest = () => {
     const contestCode = generateRandomRoomId();
-    setContest(contestCode);
-    setUserName(createContest!.name);
-    const userName = createContest!.name;
-    const newContestName = createContest?.contestName;
-    console.log(userName + " " + newContestName + " " + contestCode);
-    socket.emit("new-contest", { userName, newContestName, contestCode });
+    setContestData({
+      userName: createContest.name,
+      contestName: createContest.contestName,
+      contestCode,
+      contestTimer: createContest.timer,
+      contestCreator: true,
+    });
+
+    socket.emit("new-contest", {
+      userName: createContest.name,
+      contestName: createContest.contestName,
+      contestCode,
+      contestTimer: createContest.timer,
+    });
+
     setCreateContest({
       name: "",
       contestName: "",
@@ -38,18 +59,55 @@ const ContestComponent = ({ onClose }: any) => {
     router.push("/game");
   };
 
+  useEffect(() => {
+    socket.on("contest-created", ({ contestCode }) => {
+      console.log("contest created" + contestCode);
+    });
+
+    socket.on(
+      "joined-contest",
+      ({ contestName, contestCode, contestTimer, userName }) => {
+        console.log(
+          "joined contest" +
+            contestCode +
+            " " +
+            contestName +
+            " " +
+            contestTimer
+        );
+        setContestData({
+          userName,
+          contestTimer,
+          contestName,
+          contestCode,
+          contestCreator: false,
+        });
+        setJoinContest({
+          name: "",
+          contestId: "",
+        });
+      }
+    );
+
+    return () => {
+      socket.off("joined-contest");
+      socket.off("contest-created");
+    };
+  }, [socket]);
+
   const handleJoinContest = () => {
-    const userName = createContest?.name;
-    const joinContestCode = joinContest?.contestId;
-    socket.emit("join-contest", { userName, joinContestCode });
-    setContest(joinContestCode!);
-    setUserName(userName!);
-    setJoinContest({
-      name: "",
-      contestId: "",
+    console.log("hello from joined contest");
+    const userName = joinContest?.name;
+    const contestCode = joinContest?.contestId;
+    console.log("contestcode", contestCode);
+
+    socket.emit("join-contest", {
+      userName,
+      contestCode: joinContest?.contestId,
     });
     router.push("/game");
   };
+
   return (
     <div className="bg-gray-900 min-h-[84vh] flex justify-center items-center">
       {/* Create contest */}
@@ -60,9 +118,9 @@ const ContestComponent = ({ onClose }: any) => {
             Name
           </label>
           <input
-            value={createContest?.name}
+            value={createContest.name}
             onChange={(e) =>
-              setCreateContest({ ...createContest!, name: e.target!.value })
+              setCreateContest({ ...createContest, name: e.target!.value })
             }
             type="text"
             id="username"
@@ -76,10 +134,10 @@ const ContestComponent = ({ onClose }: any) => {
           </label>
           <input
             type="text"
-            value={createContest?.contestName}
+            value={createContest.contestName}
             onChange={(e) =>
               setCreateContest({
-                ...createContest!,
+                ...createContest,
                 contestName: e.target.value,
               })
             }
@@ -93,10 +151,10 @@ const ContestComponent = ({ onClose }: any) => {
             Timer
           </label>
           <select
-            value={createContest?.timer}
+            value={createContest.timer}
             onChange={(e) =>
               setCreateContest({
-                ...createContest!,
+                ...createContest,
                 timer: parseInt(e.target.value),
               })
             }
@@ -126,7 +184,7 @@ const ContestComponent = ({ onClose }: any) => {
             type="text"
             value={joinContest?.name}
             onChange={(e) =>
-              setJoinContest({ ...joinContest!, name: e.target.value })
+              setJoinContest({ ...joinContest, name: e.target.value })
             }
             id="username"
             className="text-black input-field py-2 px-2 rounded-md text-xl"
@@ -141,7 +199,7 @@ const ContestComponent = ({ onClose }: any) => {
             type="text"
             value={joinContest?.contestId}
             onChange={(e) =>
-              setJoinContest({ ...joinContest!, contestId: e.target.value })
+              setJoinContest({ ...joinContest, contestId: e.target.value })
             }
             id="contestCode"
             className="text-black input-field py-2 px-2 rounded-md text-xl"

@@ -2,65 +2,69 @@
 import React, {
   createContext,
   useState,
-  useContext,
   ReactNode,
   useEffect,
+  useContext,
 } from "react";
-import { io } from "socket.io-client";
-
-// Define types
+import { Socket, io } from "socket.io-client";
 const socket = io("http://localhost:3002");
+
 interface ContestContextProps {
-  userName: string | null;
-  setUserName: (name: string | null) => void;
-  contestId: string | null;
-  setContest: (id: string | null) => void;
-  socket: any;
+  contestData: {
+    userName?: string | null;
+    contestName?: string | null;
+    contestCode?: string | null;
+    contestTimer?: number | null;
+    contestCreator?: Boolean;
+  };
+  socket: Socket;
+  setContestData: (data: ContestData) => void;
+}
+
+interface ContestData {
+  userName?: string | null;
+  contestName?: string | null;
+  contestCode?: string | null;
+  contestTimer?: number | null;
+  contestCreator?: Boolean;
 }
 
 interface ContestProviderProps {
   children: ReactNode;
 }
 
-// Create the context
 const ContestContext = createContext<ContestContextProps | undefined>(
   undefined
 );
 
-// Create a provider component
 export const ContestProvider: React.FC<ContestProviderProps> = ({
   children,
 }) => {
-  const [contestId, setContestId] = useState<string | null>(null);
-  const [userName, setName] = useState<string | null>(null);
-  const setUserName = (name: string | null) => {
-    setName(name);
-    localStorage.setItem("userDetails", JSON.stringify(name));
-  };
-  useEffect(() => {
-    const data = localStorage.getItem("userDetails");
-    let value = JSON.parse(data!);
-    setName(value);
-    const id = localStorage.getItem("contestId");
-    let val = JSON.parse(id!);
-    setContest(val);
-  }, []);
-  const setContest = (id: string | null) => {
-    setContestId(id);
-    if (id == null) localStorage.removeItem("contestId");
-    else localStorage.setItem("contestId", JSON.stringify(id));
+  const [contestData, setContestDataState] = useState<ContestData>({
+    userName: null,
+    contestName: null,
+    contestCode: null,
+    contestTimer: null,
+    contestCreator: false,
+  });
+
+  const setContestData = (data: ContestData) => {
+    setContestDataState(data);
+    localStorage.setItem("contestData", JSON.stringify(data));
   };
 
+  useEffect(() => {
+    const storedData = localStorage.getItem("contestData");
+    setContestDataState(storedData ? JSON.parse(storedData) : {});
+  }, []);
+
   return (
-    <ContestContext.Provider
-      value={{ contestId, setContest, userName, setUserName, socket }}
-    >
+    <ContestContext.Provider value={{ contestData, setContestData, socket }}>
       {children}
     </ContestContext.Provider>
   );
 };
 
-// Create a custom hook to use the context
 export const useContest = (): ContestContextProps => {
   const context = useContext(ContestContext);
   if (!context) {

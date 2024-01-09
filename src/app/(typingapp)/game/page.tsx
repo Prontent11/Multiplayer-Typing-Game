@@ -1,17 +1,17 @@
+// GameComp.tsx
 "use client";
+import React, { useEffect, useState } from "react";
 import { useContest } from "@/app/context/ContestContext";
-import BlinkingCursor from "@/components/BlinkingCursor";
-import ContestComponent from "@/components/Contest";
 import Retry from "@/components/Retry";
-import React, { FC, useEffect, useState } from "react";
-import { io } from "socket.io-client";
-// const socket = io("http://localhost:3002");
+
 const wordString: string =
   "This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else";
 const wordArray = wordString.split("");
 
-const GameComp: FC = () => {
-  const { contestId, userName, socket, setContest } = useContest();
+const GameComp: React.FC = () => {
+  const { socket, contestData, setContestData } = useContest();
+  const { userName, contestCode, contestCreator, contestName, contestTimer } =
+    contestData;
   const [text, setText] = useState<string>("");
   const [correctness, setCorrectness] = useState<boolean[]>(
     new Array(wordArray.length).fill(true)
@@ -22,7 +22,7 @@ const GameComp: FC = () => {
   const [accuracy, setAccuracy] = useState<number>(0);
   const [speed, setSpeed] = useState<number>(0);
   const [cursorIndex, setCursorIndex] = useState(0);
-  
+
   const calculateAccuracy = (): number => {
     let correctCount = 0;
     wordArray.forEach((char, i) => {
@@ -32,10 +32,47 @@ const GameComp: FC = () => {
     });
     return (correctCount / text.length) * 100;
   };
+
   useEffect(() => {
-    // if (contestId) setTime();
-  }, []);
-  async function SubmitSpeed() {
+    const handleWinnerEvent = ({ highestSpeed, winnerName }: any) => {
+      console.log("Received winner event:", { highestSpeed, winnerName });
+      setContestData({
+        contestCode: "",
+        userName: "",
+        contestName: "",
+        contestTimer: 0,
+        contestCreator: false,
+      });
+      alert(
+        winnerName + " is the winner with speed of " + highestSpeed + " WPM"
+      );
+    };
+
+    // Register the event listener
+
+    socket.on("winner", handleWinnerEvent);
+    socket.on("contest-started", () => {
+      setStartTime(Date.now());
+      startTimer();
+    });
+    // Clean up the event listener when the component unmounts
+    return () => {
+      console.log("Cleaning up event listener");
+      socket.off("winner", handleWinnerEvent);
+      socket.off("contest-started");
+      // Optionally disconnect the socket when the component unmounts
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    SubmitSpeed();
+  }, [timer]);
+
+  useEffect(() => {
+    if (contestCode) setTime(contestTimer!);
+  }, [contestTimer, contestCode]);
+
+  function SubmitSpeed() {
     const elapsedTimeInSeconds = time;
     const wordsPerMinute = text.length
       ? (text.split(" ").length / elapsedTimeInSeconds) * 60
@@ -43,39 +80,16 @@ const GameComp: FC = () => {
 
     const accuracyValue = calculateAccuracy().toFixed(2);
 
-    // console.log(`WPM: ${wordsPerMinute}, Accuracy: ${accuracyValue}%`);
-    if (timer == 0 && contestId) {
+    if (timer === 0 && contestCode) {
       console.log(userName);
-      await socket.emit("typing-speed", { contestId, userName, speed });
+      setTimeout(() => {
+        socket.emit("typing-speed", { contestCode, userName, speed });
+      }, 2000);
     }
 
-    // console.log(socket.emit("player-performance", { speed, accuracy }));
     setSpeed(wordsPerMinute);
     setAccuracy(parseFloat(accuracyValue));
   }
-  useEffect(() => {
-    SubmitSpeed();
-  }, [timer]);
-  useEffect(() => {
-    const handleWinnerEvent = ({ highestSpeed, winnerName }: any) => {
-      console.log("Received winner event:", { highestSpeed, winnerName });
-      setContest(null);
-      alert(
-        winnerName + " is the winner with speed of " + highestSpeed + " WPM"
-      );
-    };
-    console.log("inside socket");
-    // Register the event listener
-
-    socket.on("winner", handleWinnerEvent);
-
-    // Clean up the event listener when the component unmounts
-    return () => {
-      console.log("Cleaning up event listener");
-      socket.off("winner", handleWinnerEvent);
-      // Optionally disconnect the socket when the component unmounts
-    };
-  }, [socket]);
 
   useEffect(() => {
     setTimer(time);
@@ -84,11 +98,13 @@ const GameComp: FC = () => {
     setText("");
     setCursorIndex(0);
   }, [time]);
+
   const RetryButton = () => {
     setStartTime(null);
-    const newTime = time == 30 ? 15 : 30;
+    const newTime = time === 30 ? 15 : 30;
     setTime(newTime);
   };
+
   const startTimer = () => {
     const interval = setInterval(() => {
       setTimer((prevTimer) => {
@@ -114,7 +130,7 @@ const GameComp: FC = () => {
       );
       setCorrectness(newCorrectness);
 
-      if (startTime === null) {
+      if (startTime === null && !contestCode) {
         setStartTime(Date.now());
         startTimer();
       }
@@ -136,13 +152,15 @@ const GameComp: FC = () => {
       }
     }
   };
-
+  const handleStartContest = () => {
+    socket.emit("start-contest");
+  };
   useEffect(() => {
     addEventListener("keydown", handleKeyDown);
     return () => {
       removeEventListener("keydown", handleKeyDown);
     };
-  }, [text, startTime]);
+  }, [startTime]);
 
   return (
     <div className="min-h-[84vh] bg-gray-900 flex items-center justify-center text-white ">
@@ -152,13 +170,19 @@ const GameComp: FC = () => {
             Time remaining: {timer}s | Speed: {speed ? speed.toFixed(2) : 0} WPM
             | Accuracy: {accuracy || 0}%
           </div>
-          {timer == time && (
+          {!contestCode && (
             <div className="mb-4">
               <label className="text-white mr-2">Select Timer:</label>
               <select
                 className="bg-gray-700 text-white p-2 rounded-md"
                 value={time}
-                onChange={(e) => setTime(parseInt(e.target.value))}
+                onChange={(e) => {
+                  setTime(parseInt(e.target.value));
+                  setContestData({
+                    ...contestData!,
+                    contestTimer: parseInt(e.target.value),
+                  });
+                }}
               >
                 <option value={15}>15s</option>
                 <option value={30}>30s</option>
@@ -166,9 +190,13 @@ const GameComp: FC = () => {
               </select>
             </div>
           )}
+          {contestCreator && (
+            <div>
+              <button onClick={handleStartContest}>Start Contest</button>
+            </div>
+          )}
         </div>
         <div className="mt-8  max-w-prose text-2xl  text-justify ">
-          {/* <BlinkingCursor cursorIndex={cursorIndex} /> */}
           {timer ? (
             wordArray.map((char, i) =>
               i < text.length + 300 ? (
