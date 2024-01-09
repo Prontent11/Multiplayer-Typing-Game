@@ -8,7 +8,7 @@ interface BlinkingCursorProps {
 
 const BlinkingCursor: React.FC<BlinkingCursorProps> = ({ cursorIndex }) => {
   const cursorStyle = {
-    left: `${cursorIndex * 10}px`, // Adjust the multiplier as needed
+    left: `${cursorIndex * 16}px`, // Adjust the multiplier as needed
   };
 
   return <span className="cursor" style={cursorStyle}></span>;

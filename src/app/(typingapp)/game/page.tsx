@@ -3,12 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { useContest } from "@/app/context/ContestContext";
 import Retry from "@/components/Retry";
+import BlinkingCursor from "@/components/BlinkingCursor";
 
 const wordString: string =
   "This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else";
 const wordArray = wordString.split("");
 
 const GameComp: React.FC = () => {
+  const [showContent, setShowContent] = useState(true);
   const { socket, contestData, setContestData } = useContest();
   const { userName, contestCode, contestCreator, contestName, contestTimer } =
     contestData;
@@ -52,6 +54,7 @@ const GameComp: React.FC = () => {
 
     socket.on("winner", handleWinnerEvent);
     socket.on("contest-started", () => {
+      if (!contestCreator) setShowContent(true);
       setStartTime(Date.now());
       startTimer();
     });
@@ -69,7 +72,10 @@ const GameComp: React.FC = () => {
   }, [timer]);
 
   useEffect(() => {
-    if (contestCode) setTime(contestTimer!);
+    if (contestCode) {
+      setShowContent(false);
+      setTime(contestTimer!);
+    }
   }, [contestTimer, contestCode]);
 
   function SubmitSpeed() {
@@ -130,7 +136,7 @@ const GameComp: React.FC = () => {
       );
       setCorrectness(newCorrectness);
 
-      if (startTime === null && !contestCode) {
+      if (startTime === null && contestCode === "") {
         setStartTime(Date.now());
         startTimer();
       }
@@ -146,7 +152,7 @@ const GameComp: React.FC = () => {
       );
       setCorrectness(newCorrectness);
 
-      if (startTime === null) {
+      if (startTime === null && contestCode === "") {
         setStartTime(Date.now());
         startTimer();
       }
@@ -154,77 +160,85 @@ const GameComp: React.FC = () => {
   };
   const handleStartContest = () => {
     socket.emit("start-contest");
+    setShowContent(true);
   };
   useEffect(() => {
     addEventListener("keydown", handleKeyDown);
     return () => {
       removeEventListener("keydown", handleKeyDown);
     };
-  }, [startTime]);
+  }, [text, startTime]);
 
   return (
-    <div className="min-h-[84vh] bg-gray-900 flex items-center justify-center text-white ">
+    <div className="min-h-[84vh] tracking-widest bg-gray-900 flex items-center justify-center text-white ">
       <div className="max-w-full p-8  rounded-md shadow-lg">
-        <div className="text-center flex justify-between items-center">
-          <div className="text-white  text-xl mb-4">
-            Time remaining: {timer}s | Speed: {speed ? speed.toFixed(2) : 0} WPM
-            | Accuracy: {accuracy || 0}%
-          </div>
-          {!contestCode && (
-            <div className="mb-4">
-              <label className="text-white mr-2">Select Timer:</label>
-              <select
-                className="bg-gray-700 text-white p-2 rounded-md"
-                value={time}
-                onChange={(e) => {
-                  setTime(parseInt(e.target.value));
-                  setContestData({
-                    ...contestData!,
-                    contestTimer: parseInt(e.target.value),
-                  });
-                }}
-              >
-                <option value={15}>15s</option>
-                <option value={30}>30s</option>
-                <option value={60}>60s</option>
-              </select>
-            </div>
-          )}
-          {contestCreator && (
+        {!showContent ? (
+          contestCreator ? (
             <div>
               <button onClick={handleStartContest}>Start Contest</button>
             </div>
-          )}
-        </div>
-        <div className="mt-8  max-w-prose text-2xl  text-justify ">
-          {timer ? (
-            wordArray.map((char, i) =>
-              i < text.length + 300 ? (
-                <span
-                  key={i}
-                  className={
-                    i < text.length && timer > 0
-                      ? char === text[i]
-                        ? "text-green-500"
-                        : "text-red-500"
-                      : "text-gray-500"
-                  }
-                >
-                  {char}
-                </span>
-              ) : (
-                ""
-              )
-            )
           ) : (
-            <div className="text-center flex flex-col items-center gap-3">
-              Time's Up.{" "}
-              <button onClick={RetryButton}>
-                <Retry />
-              </button>
+            <div>The Contest is yet to start...</div>
+          )
+        ) : (
+          <>
+            <div className="text-center flex justify-between items-center">
+              <div className="text-white  text-xl mb-4">
+                Time remaining: {timer}s | Speed: {speed ? speed.toFixed(2) : 0}{" "}
+                WPM | Accuracy: {accuracy || 0}%
+              </div>
+              {!contestCode && (
+                <div className="mb-4">
+                  <label className="text-white mr-2">Select Timer:</label>
+                  <select
+                    className="bg-gray-700 text-white p-2 rounded-md"
+                    value={time}
+                    onChange={(e) => {
+                      setTime(parseInt(e.target.value));
+                      setContestData({
+                        ...contestData!,
+                        contestTimer: parseInt(e.target.value),
+                      });
+                    }}
+                  >
+                    <option value={15}>15s</option>
+                    <option value={30}>30s</option>
+                    <option value={60}>60s</option>
+                  </select>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+            <div className="mt-8  max-w-prose text-2xl  text-justify ">
+              {timer ? (
+                wordArray.map((char, i) =>
+                  i < text.length + 300 ? (
+                    <span
+                      key={i}
+                      className={
+                        i < text.length && timer > 0
+                          ? char === text[i]
+                            ? "text-green-500"
+                            : "text-red-500"
+                          : "text-gray-500"
+                      }
+                    >
+                      {char}
+                    </span>
+                  ) : (
+                    ""
+                  )
+                )
+              ) : (
+                <div className="text-center flex flex-col items-center gap-3">
+                  Time's Up.{" "}
+                  <button onClick={RetryButton}>
+                    <Retry />
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
