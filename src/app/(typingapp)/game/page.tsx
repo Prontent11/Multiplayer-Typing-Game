@@ -4,19 +4,32 @@ import React, { useEffect, useState } from "react";
 import { useContest } from "@/app/context/ContestContext";
 import Retry from "@/components/Retry";
 import BlinkingCursor from "@/components/BlinkingCursor";
+import UsersSpeedDisplay from "@/components/UserDetails";
+import ContestCode from "@/components/ContestCode";
+import wordString from "@/helpers/getRandomWords";
+import UserDetails from "@/components/UserDetails";
+// import selectedWords from "@/helpers/getRandomWords";
 
-const wordString: string =
-  "This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else This is test string only used for description and nothing else";
-const wordArray = wordString.split("");
+interface AllUserDetails {
+  userDetails: UserDetails[];
+}
+interface UserDetails {
+  user: string;
+  speed: number;
+  socketid?: string;
+}
+
+const wordArray = wordString.toLowerCase().split("");
 
 const GameComp: React.FC = () => {
+  const [wordArray, setWordArray] = useState<String[]>();
   const [showContent, setShowContent] = useState(true);
   const { socket, contestData, setContestData } = useContest();
   const { userName, contestCode, contestCreator, contestName, contestTimer } =
     contestData;
   const [text, setText] = useState<string>("");
   const [correctness, setCorrectness] = useState<boolean[]>(
-    new Array(wordArray.length).fill(true)
+    new Array(500).fill(true)
   );
   const [time, setTime] = useState<number>(30);
   const [timer, setTimer] = useState<number>(30);
@@ -24,10 +37,11 @@ const GameComp: React.FC = () => {
   const [accuracy, setAccuracy] = useState<number>(0);
   const [speed, setSpeed] = useState<number>(0);
   const [cursorIndex, setCursorIndex] = useState(0);
-
+  const [usersDetails, setUsersDetails] = useState<UserDetails[]>();
+  const [showTable, setShowTable] = useState<Boolean>(false);
   const calculateAccuracy = (): number => {
     let correctCount = 0;
-    wordArray.forEach((char, i) => {
+    wordArray?.forEach((char, i) => {
       if (i < text.length && text[i] === char) {
         correctCount++;
       }
@@ -36,7 +50,19 @@ const GameComp: React.FC = () => {
   };
 
   useEffect(() => {
-    const handleWinnerEvent = ({ highestSpeed, winnerName }: any) => {
+    setWordArray(wordString.toLowerCase().split(""));
+  }, []);
+  useEffect(() => {
+    const handleWinnerEvent = ({
+      highestSpeed,
+      winnerName,
+      allusersData,
+    }: any) => {
+      setShowTable(true);
+      console.log("alluserData", allusersData);
+
+      setUsersDetails(allusersData);
+
       console.log("Received winner event:", { highestSpeed, winnerName });
       setContestData({
         contestCode: "",
@@ -77,24 +103,32 @@ const GameComp: React.FC = () => {
       setTime(contestTimer!);
     }
   }, [contestTimer, contestCode]);
-
-  function SubmitSpeed() {
+  function Delay(delay: number) {
+    return new Promise((res) => {
+      setTimeout(() => {
+        res("delay");
+      }, delay);
+    });
+  }
+  async function SubmitSpeed() {
     const elapsedTimeInSeconds = time;
     const wordsPerMinute = text.length
-      ? (text.split(" ").length / elapsedTimeInSeconds) * 60
+      ? parseFloat(((text.split(" ").length / (time - timer)) * 60).toFixed(2))
       : 0;
 
     const accuracyValue = calculateAccuracy().toFixed(2);
-
+    setAccuracy(parseFloat(accuracyValue));
+    setSpeed(wordsPerMinute);
     if (timer === 0 && contestCode) {
       console.log(userName);
-      setTimeout(() => {
-        socket.emit("typing-speed", { contestCode, userName, speed });
-      }, 2000);
+      setSpeed(wordsPerMinute);
+      await Delay(3000);
+      socket.emit("typing-speed", {
+        contestCode,
+        userName,
+        speed: wordsPerMinute,
+      });
     }
-
-    setSpeed(wordsPerMinute);
-    setAccuracy(parseFloat(accuracyValue));
   }
 
   useEffect(() => {
@@ -109,6 +143,7 @@ const GameComp: React.FC = () => {
     setStartTime(null);
     const newTime = time === 30 ? 15 : 30;
     setTime(newTime);
+    setShowTable(false);
   };
 
   const startTimer = () => {
@@ -127,16 +162,16 @@ const GameComp: React.FC = () => {
   const handleKeyDown = (event: KeyboardEvent) => {
     const key = event.key;
 
-    if (/^[a-zA-Z]$/.test(key) || event.keyCode === 32) {
+    if (/^[a-zA-Z,..'"]$/.test(key) || event.keyCode === 32) {
       const newText = text + key;
-      setText(newText);
+      if (showContent) setText(newText);
 
-      const newCorrectness = wordArray.map(
+      const newCorrectness = wordArray?.map(
         (char, index) => char === newText[index]
       );
-      setCorrectness(newCorrectness);
+      setCorrectness(newCorrectness!);
 
-      if (startTime === null && contestCode === "") {
+      if (startTime === null && !contestCode) {
         setStartTime(Date.now());
         startTimer();
       }
@@ -147,12 +182,12 @@ const GameComp: React.FC = () => {
       const newText = text.slice(0, -1);
       setText(newText);
       setCursorIndex((prevIndex) => Math.max(0, prevIndex - 1));
-      const newCorrectness = wordArray.map(
+      const newCorrectness = wordArray!.map(
         (char, index) => char === newText[index]
       );
       setCorrectness(newCorrectness);
 
-      if (startTime === null && contestCode === "") {
+      if (startTime === null && !contestCode) {
         setStartTime(Date.now());
         startTimer();
       }
@@ -170,11 +205,12 @@ const GameComp: React.FC = () => {
   }, [text, startTime]);
 
   return (
-    <div className="min-h-[84vh] tracking-widest bg-gray-900 flex items-center justify-center text-white ">
+    <div className="min-h-[84vh]  bg-gray-900 flex items-center justify-center text-white ">
       <div className="max-w-full p-8  rounded-md shadow-lg">
         {!showContent ? (
           contestCreator ? (
             <div>
+              <ContestCode textToCopy={contestCode} />
               <button onClick={handleStartContest}>Start Contest</button>
             </div>
           ) : (
@@ -184,10 +220,10 @@ const GameComp: React.FC = () => {
           <>
             <div className="text-center flex justify-between items-center">
               <div className="text-white  text-xl mb-4">
-                Time remaining: {timer}s | Speed: {speed ? speed.toFixed(2) : 0}{" "}
-                WPM | Accuracy: {accuracy || 0}%
+                Time remaining: {timer}s | Speed: {speed ? speed : 0} WPM |
+                Accuracy: {accuracy || 0}%
               </div>
-              {!contestCode && (
+              {!contestCode && timer ? (
                 <div className="mb-4">
                   <label className="text-white mr-2">Select Timer:</label>
                   <select
@@ -206,11 +242,13 @@ const GameComp: React.FC = () => {
                     <option value={60}>60s</option>
                   </select>
                 </div>
+              ) : (
+                ""
               )}
             </div>
-            <div className="mt-8  max-w-prose text-2xl  text-justify ">
+            <div className="mt-8  max-w-prose text-2xl  tracking-widest  text-justify ">
               {timer ? (
-                wordArray.map((char, i) =>
+                wordArray?.map((char, i) =>
                   i < text.length + 300 ? (
                     <span
                       key={i}
@@ -230,6 +268,9 @@ const GameComp: React.FC = () => {
                 )
               ) : (
                 <div className="text-center flex flex-col items-center gap-3">
+                  {showTable && (
+                    <UsersSpeedDisplay usersDetails={usersDetails} />
+                  )}
                   Time's Up.{" "}
                   <button onClick={RetryButton}>
                     <Retry />

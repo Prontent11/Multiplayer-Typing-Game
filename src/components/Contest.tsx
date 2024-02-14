@@ -34,7 +34,8 @@ const ContestComponent: React.FC = () => {
 
   const { setContestData, socket, contestData } = useContest();
 
-  const handleCreateContest = () => {
+  const handleCreateContest = (e: any) => {
+    e.preventDefault();
     const contestCode = generateRandomRoomId();
     setContestData({
       userName: createContest.name,
@@ -95,7 +96,8 @@ const ContestComponent: React.FC = () => {
     };
   }, [socket]);
 
-  const handleJoinContest = () => {
+  const handleJoinContest = (e: any) => {
+    e.preventDefault();
     console.log("hello from joined contest");
     const userName = joinContest?.name;
     const contestCode = joinContest?.contestId;
@@ -109,15 +111,25 @@ const ContestComponent: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-900 min-h-[84vh] flex justify-center items-center">
+    <div
+      className="bg-gray-900 
+    lg:flex-row
+    prose prose-md lg:prose-lg xl:prose-xl
+   w-full
+    flex-col min-h-[84vh] flex justify-center items-center"
+    >
       {/* Create contest */}
-      <div className="contest-section bg-gray-800 p-8 rounded-md shadow-lg text-white">
+      <form
+        onSubmit={handleCreateContest}
+        className="contest-section bg-gray-800 mb-4 p-8 mt-10 lg:mt-0 lg:mb-0 rounded-md shadow-lg text-white"
+      >
         <h2 className="text-3xl font-bold mb-6">Create Contest</h2>
         <div className="input-group mb-4">
           <label htmlFor="username" className="text-white block mb-2">
             Name
           </label>
           <input
+            required
             value={createContest.name}
             onChange={(e) =>
               setCreateContest({ ...createContest, name: e.target!.value })
@@ -133,6 +145,7 @@ const ContestComponent: React.FC = () => {
             Contest Name
           </label>
           <input
+            required
             type="text"
             value={createContest.contestName}
             onChange={(e) =>
@@ -168,19 +181,23 @@ const ContestComponent: React.FC = () => {
         </div>
         <button
           className="button bg-blue-500 text-white px-6 py-2 rounded-md"
-          onClick={handleCreateContest}
+          type="submit"
         >
           Create Contest
         </button>
-      </div>
+      </form>
       {/* Join contest */}
-      <div className="contest-section bg-gray-800 p-8 rounded-md shadow-lg text-white ml-8">
+      <form
+        onSubmit={handleJoinContest}
+        className="contest-section bg-gray-800 p-8 rounded-md shadow-lg text-white lg:ml-8 lg:mb-0 mb-10"
+      >
         <h2 className="text-3xl font-bold mb-6">Join Contest</h2>
         <div className="input-group mb-4">
           <label htmlFor="username" className="text-white block mb-2">
             Name
           </label>
           <input
+            required
             type="text"
             value={joinContest?.name}
             onChange={(e) =>
@@ -196,6 +213,7 @@ const ContestComponent: React.FC = () => {
             Contest Code
           </label>
           <input
+            required
             type="text"
             value={joinContest?.contestId}
             onChange={(e) =>
@@ -208,11 +226,11 @@ const ContestComponent: React.FC = () => {
         </div>
         <button
           className="button bg-green-500 text-white px-6 py-2 rounded-md"
-          onClick={handleJoinContest}
+          type="submit"
         >
           Join Contest
         </button>
-      </div>
+      </form>
     </div>
   );
 };

@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import { Socket, io } from "socket.io-client";
 const socket = io("http://localhost:3002");
-
 interface ContestContextProps {
   contestData: {
     userName?: string | null;

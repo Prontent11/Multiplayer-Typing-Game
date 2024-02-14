@@ -3,12 +3,12 @@ import React from "react";
 // import "./BlinkingCursor.css";
 
 interface BlinkingCursorProps {
-  cursorIndex: number;
+  textLen: number;
 }
 
-const BlinkingCursor: React.FC<BlinkingCursorProps> = ({ cursorIndex }) => {
+const BlinkingCursor: React.FC<BlinkingCursorProps> = ({ textLen }) => {
   const cursorStyle = {
-    left: `${cursorIndex * 16}px`, // Adjust the multiplier as needed
+    left: `${textLen - 1}ch`, // Adjust the multiplier as needed
   };
 
   return <span className="cursor" style={cursorStyle}></span>;
