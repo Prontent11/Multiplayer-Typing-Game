@@ -205,10 +205,10 @@ const GameComp: React.FC = () => {
   }, [text, startTime]);
 
   return (
-    <div className="min-h-[84vh]  bg-gray-900 flex items-center justify-center text-white ">
+    <div className="sm:min-h-[83.5vh] min-h-[87vh]   bg-gray-900 flex items-center justify-center text-white ">
       <div className="max-w-full p-8  rounded-md shadow-lg">
         {!showContent ? (
-          contestCreator ? (
+          contestCreator && contestCode ? (
             <div>
               <ContestCode textToCopy={contestCode} />
               <button onClick={handleStartContest}>Start Contest</button>

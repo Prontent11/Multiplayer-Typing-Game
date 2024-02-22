@@ -116,7 +116,7 @@ const ContestComponent: React.FC = () => {
     lg:flex-row
     prose prose-md lg:prose-lg xl:prose-xl
    w-full
-    flex-col min-h-[84vh] flex justify-center items-center"
+    flex-col min-h-[83.5vh] flex justify-center items-center"
     >
       {/* Create contest */}
       <form
