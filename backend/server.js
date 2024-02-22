@@ -13,6 +13,10 @@ const io = require("socket.io")(server, {
   },
 });
 
+app.get("/", (req, res) => {
+  res.send("websocket api working");
+});
+
 // Enable CORS for all routes
 app.use(cors());
 
@@ -159,7 +163,7 @@ io.on("connection", (socket) => {
     console.log("User disconnected");
   });
 });
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
