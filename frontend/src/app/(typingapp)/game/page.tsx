@@ -3,16 +3,11 @@
 import React, { useEffect, useState } from "react";
 import { useContest } from "@/app/context/ContestContext";
 import Retry from "@/components/Retry";
-import BlinkingCursor from "@/components/BlinkingCursor";
 import UsersSpeedDisplay from "@/components/UserDetails";
 import ContestCode from "@/components/ContestCode";
 import wordString from "@/helpers/getRandomWords";
 import UserDetails from "@/components/UserDetails";
-// import selectedWords from "@/helpers/getRandomWords";
 
-interface AllUserDetails {
-  userDetails: UserDetails[];
-}
 interface UserDetails {
   user: string;
   speed: number;
@@ -176,7 +171,7 @@ const GameComp: React.FC = () => {
   const handleKeyDown = (event: KeyboardEvent) => {
     const key = event.key;
 
-    if (/^[a-zA-Z,..'"]$/.test(key) || event.keyCode === 32) {
+    if (/^[a-zA-Z,..'"]+$/.test(key) || event.keyCode === 32) {
       const newText = text + key;
       if (showContent) setText(newText);
 
@@ -285,7 +280,7 @@ const GameComp: React.FC = () => {
                   {showTable && (
                     <UsersSpeedDisplay usersDetails={usersDetails} />
                   )}
-                  Time's Up.{" "}
+                  <span>Time&apos;s Up.</span>
                   <button onClick={RetryButton}>
                     <Retry />
                   </button>
