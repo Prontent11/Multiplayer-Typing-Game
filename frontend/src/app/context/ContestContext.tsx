@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { Socket, io } from "socket.io-client";
 
-const socket = io(`${process.env.SOCKET_API}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKETAPI}`);
 interface ContestContextProps {
   contestData: {
     userName?: string | null;
