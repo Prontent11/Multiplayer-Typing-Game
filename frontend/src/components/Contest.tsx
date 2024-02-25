@@ -57,12 +57,12 @@ const ContestComponent: React.FC = () => {
       contestName: "",
       timer: 0,
     });
-    router.push("/game");
   };
 
   useEffect(() => {
     socket.on("contest-created", ({ contestCode }) => {
       console.log("contest created" + contestCode);
+      router.push("/game");
     });
 
     socket.on(
@@ -87,6 +87,7 @@ const ContestComponent: React.FC = () => {
           name: "",
           contestId: "",
         });
+        router.push("/game");
       }
     );
 
@@ -107,7 +108,6 @@ const ContestComponent: React.FC = () => {
       userName,
       contestCode: joinContest?.contestId,
     });
-    router.push("/game");
   };
 
   return (

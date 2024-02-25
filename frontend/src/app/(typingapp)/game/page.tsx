@@ -112,8 +112,22 @@ const GameComp: React.FC = () => {
   }
   async function SubmitSpeed() {
     const elapsedTimeInSeconds = time;
+    let inCorrectCount = 0;
+    wordArray?.forEach((char, i) => {
+      if (i < text.length && text[i] !== char) {
+        inCorrectCount++;
+      }
+    });
     const wordsPerMinute = text.length
-      ? parseFloat(((text.split(" ").length / (time - timer)) * 60).toFixed(2))
+      ? parseFloat(
+          (
+            ((text.split(" ").length - inCorrectCount < 0
+              ? 0
+              : text.split(" ").length - inCorrectCount) /
+              (time - timer)) *
+            60
+          ).toFixed(2)
+        )
       : 0;
 
     const accuracyValue = calculateAccuracy().toFixed(2);
@@ -122,7 +136,7 @@ const GameComp: React.FC = () => {
     if (timer === 0 && contestCode) {
       console.log(userName);
       setSpeed(wordsPerMinute);
-      await Delay(3000);
+      await Delay(2000);
       socket.emit("typing-speed", {
         contestCode,
         userName,
